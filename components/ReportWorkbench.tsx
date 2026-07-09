@@ -234,7 +234,7 @@ export default function ReportWorkbench() {
   };
 
   const acceptAllWarnings = () => {
-    addUserEvent("warning", "已确认接受全部 warning 风险，继续生成。");
+    addUserEvent("warning", "已确认风险并继续生成。");
     setWarnings((items) => items.map((item) => ({ ...item, accepted: true })));
     setStage("generating");
     setInspectorTopic("generation");
@@ -244,7 +244,7 @@ export default function ReportWorkbench() {
     setWarnings((items) => {
       const next = items.map((item) => (item.id === id ? { ...item, accepted: true } : item));
       if (!items.every((item) => item.accepted) && next.every((item) => item.accepted)) {
-        addUserEvent("warning", "已确认接受全部 warning 风险，继续生成。");
+        addUserEvent("warning", "已确认风险并继续生成。");
         setStage("generating");
         setInspectorTopic("generation");
       }
@@ -641,20 +641,24 @@ function ProjectGroup({
                 置顶项目
               </button>
               <button type="button">
-                <Folder size={14} />
-                在资源管理器中打开
+                <MessageSquare size={14} />
+                新建对话
+              </button>
+              <button type="button">
+                <ShieldCheck size={14} />
+                成员与权限
               </button>
               <button type="button">
                 <Edit3 size={14} />
                 重命名项目
               </button>
               <button type="button">
-                <FileArchive size={14} />
-                归档对话
+                <FileText size={14} />
+                查看操作记录
               </button>
               <button type="button">
                 <X size={14} />
-                移除
+                归入回收站
               </button>
             </div>
           </div>
@@ -722,12 +726,16 @@ function ChatRow({
               重命名对话
             </button>
             <button type="button">
-              <FileArchive size={14} />
-              归档对话
+              <SearchCheck size={14} />
+              查看 warning / 证据
+            </button>
+            <button type="button">
+              <FileText size={14} />
+              查看操作记录
             </button>
             <button type="button">
               <X size={14} />
-              移除
+              归入回收站
             </button>
           </span>
         </span>
@@ -951,6 +959,35 @@ function ReadyFileGroup({
   );
 }
 
+function formatElapsed(seconds: number) {
+  if (seconds < 60) return `${seconds}s`;
+  const minutes = Math.floor(seconds / 60);
+  const rest = seconds % 60;
+  return `${minutes}m ${rest.toString().padStart(2, "0")}s`;
+}
+
+function useStageTimer(running: boolean, reset: boolean) {
+  const [seconds, setSeconds] = useState(0);
+
+  useEffect(() => {
+    if (reset) {
+      setSeconds(0);
+      return;
+    }
+
+    if (!running) return;
+
+    setSeconds(0);
+    const timer = window.setInterval(() => {
+      setSeconds((current) => current + 1);
+    }, 1000);
+
+    return () => window.clearInterval(timer);
+  }, [reset, running]);
+
+  return formatElapsed(seconds);
+}
+
 function Conversation({
   files,
   userEvents,
@@ -988,6 +1025,9 @@ function Conversation({
   const generationVisible = ["generating", "review", "exported"].includes(stage);
   const artifactsVisible = ["review", "exported"].includes(stage);
   const reviewVisible = ["review", "exported"].includes(stage);
+  const validationElapsed = useStageTimer(stage === "validating", stage === "empty" || stage === "uploaded");
+  const generationElapsed = useStageTimer(stage === "generating", stage === "warning");
+  const reviewElapsed = useStageTimer(stage === "review", stage === "generating");
 
   return (
     <section className="conversation">
@@ -1008,7 +1048,7 @@ function Conversation({
         <section className="phaseBlock">
           <ThinkingCard
             running={stage === "validating"}
-            elapsed="1m 25s"
+            elapsed={validationElapsed}
             steps={validationSteps}
             expanded={stage === "validating" || expandedThinking.validation}
             title="校验过程"
@@ -1031,7 +1071,7 @@ function Conversation({
               actionLabel="查看 warning 证据"
               onAction={() => onInspector("warnings")}
             >
-              可以继续，但需要先确认 warning。我已完成文件识别、统计上下文检查和 QA 初筛；当前没有 blocking 问题，但有 3 条 warning 需要授权用户确认。确认只表示接受这些风险进入生成流程，不等于确认最终科学结论。
+              可以继续，但需要先确认 warning。我已完成文件识别、统计上下文检查和 QA 初筛；当前没有 blocking 问题，但有 3 条 warning 需要授权用户确认。确认风险只表示允许进入生成流程，不等于最终科学结论放行。
             </AgentReply>
           ) : null}
           <UserEventBubbles events={userEvents} after="warning" />
@@ -1042,7 +1082,7 @@ function Conversation({
         <section className="phaseBlock">
           <ThinkingCard
             running={stage === "generating"}
-            elapsed="2m 08s"
+            elapsed={generationElapsed}
             steps={generationSteps}
             expanded={stage === "generating" || expandedThinking.generation}
             title="生成过程"
@@ -1098,8 +1138,8 @@ function Conversation({
             审核小队会从数据溯源、统计口径、安全性和图表版式几个方向检查报告，并把需要用户确认或补充证据的建议汇总出来。
           </AgentReply>
           <ThinkingCard
-            running={false}
-            elapsed="1m 48s"
+            running={stage === "review"}
+            elapsed={reviewElapsed}
             steps={reviewSteps}
             expanded={expandedThinking.review}
             title="专家检查过程"
@@ -1400,7 +1440,7 @@ function Composer({
 
       {stage === "review" && pendingReviews.length > 0 ? (
         <ReviewDecisionPanel
-          reviews={pendingReviews}
+          reviews={reviews}
           onConfirmOne={onConfirmReview}
           onConfirmAll={onConfirmAllReviews}
           onAskFollowup={onAskFollowup}
@@ -1482,6 +1522,59 @@ function Composer({
   );
 }
 
+function warningEvidence(id: string) {
+  const details: Record<
+    string,
+    {
+      status: string;
+      shortEvidence: string;
+      shortImpact: string;
+      evidence: string[];
+      impact: string;
+      trace: string;
+    }
+  > = {
+    "W-01": {
+      status: "需 SD 确认",
+      shortEvidence: "数据 XLSX / tumor-volume / Day 28",
+      shortImpact: "TGI 统计快照、终点日描述",
+      evidence: [
+        "文件：脱敏数据6.xlsx / Sheet：tumor-volume / 列：Tumor volume (mm3)",
+        "位置：Day 28 / Group B / Mouse B-03，终点日肿瘤体积为空值",
+        "对照依据：脱敏试验方案6.docx / 第 3 页 / 2.1 终点日定义",
+      ],
+      impact: "影响 TGI 表格快照、终点日趋势描述和 Figure 2 caption；不阻断报告生成，但最终放行前需要 SD 确认。",
+      trace: "validation-report.json",
+    },
+    "W-02": {
+      status: "需 QA 放行",
+      shortEvidence: "方案 DOCX + 数据 XLSX / AE log",
+      shortImpact: "体重/安全性描述、QA 放行",
+      evidence: [
+        "文件：脱敏数据6.xlsx / Sheet：AE log / 字段：closed、resolved",
+        "位置：Mouse C-07 / Day 24，异常事件记录缺少 closed / resolved 状态",
+        "对照依据：脱敏试验方案6.docx / 第 5 页 / Safety Observation",
+      ],
+      impact: "影响体重/安全性模块描述和 QA lineage completeness；最终导出前需要 QA 在模块审核中补充注记。",
+      trace: "recognized-context.json",
+    },
+    "W-03": {
+      status: "需统计确认",
+      shortEvidence: "统计说明 / p-value method",
+      shortImpact: "统计口径、结论措辞",
+      evidence: [
+        "文件：脱敏数据6.xlsx / Sheet：Group summary / 字段：p-value method",
+        "位置：TGI summary / Day 28，统计方法来源未绑定到原始统计说明",
+        "对照依据：脱敏试验方案6.docx / 第 7 页 / Statistical Analysis",
+      ],
+      impact: "影响统计口径和结论措辞边界；不阻断报告生成，但最终放行前需要统计确认显著性描述口径。",
+      trace: "recognized-context.json",
+    },
+  };
+
+  return details[id] ?? details["W-01"];
+}
+
 function WarningDecisionPanel({
   warnings,
   onAcceptAll,
@@ -1500,6 +1593,7 @@ function WarningDecisionPanel({
   onToggleExpanded: () => void;
 }) {
   const acceptedCount = warnings.filter((item) => item.accepted).length;
+  const pendingWarnings = warnings.filter((item) => !item.accepted);
 
   return (
     <article
@@ -1517,9 +1611,11 @@ function WarningDecisionPanel({
         <small>{acceptedCount}/{warnings.length}</small>
       </div>
       <div className="warningDecisionList">
-        {warnings.slice(0, 3).map((item, index) => (
+        {pendingWarnings.slice(0, 3).map((item, index) => {
+          const detail = warningEvidence(item.id);
+          return (
           <div
-            className={`decisionRow ${item.accepted ? "done" : ""}`}
+            className="decisionRow"
             key={item.id}
             role="button"
             tabIndex={0}
@@ -1529,17 +1625,18 @@ function WarningDecisionPanel({
             }}
           >
             <span className="decisionIndex">
-              {item.accepted ? <i className="rowStatusDot success" /> : index + 1}
+              {index + 1}
             </span>
             <div className="decisionCopy">
               <span>{item.owner}</span>
               <strong>{item.title}</strong>
-              <p>
-                {item.impact}{" "}
-                <TraceReference label={item.id === "W-01" ? "validation-report.json" : "recognized-context.json"} />
-              </p>
+              <p>证据：{detail.shortEvidence}</p>
+              <p>影响：{detail.shortImpact}</p>
             </div>
             <div className="decisionInlineActions">
+              <button className="decisionIcon" type="button" onClick={onPreview} aria-label={`${item.title}预览证据`}>
+                <Eye size={15} />
+              </button>
               <button
                 className="decisionPrimary"
                 type="button"
@@ -1547,27 +1644,27 @@ function WarningDecisionPanel({
                   event.stopPropagation();
                   onAcceptOne(item.id);
                 }}
-                disabled={item.accepted}
               >
-                {item.accepted ? "已接受" : "接受此风险"}
+                确认此项
               </button>
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
       <div className="warningActions">
         <button className="decisionIcon" type="button" onClick={onPreview} aria-label="查看校验预览">
           <Eye size={16} />
         </button>
         <button className="primaryButton compact" type="button" onClick={onAcceptAll}>
-          全部接受并生成
+          确认风险并继续生成
         </button>
         <button className="secondaryButton compact" type="button" onClick={onReject}>
-          返回替换文件
+          退回并替换文件
         </button>
       </div>
       <p className="responsibilityNote">
-        确认 warning 只表示接受这些风险进入生成流程，不等于确认最终科学结论。
+        确认 warning 只表示接受这些风险进入生成流程，不等于确认最终科学结论放行。
       </p>
     </article>
   );
@@ -1590,6 +1687,9 @@ function ReviewDecisionPanel({
   expanded: boolean;
   onToggleExpanded: () => void;
 }) {
+  const confirmedCount = reviews.filter((item) => item.status === "confirmed").length;
+  const pendingReviews = reviews.filter((item) => item.status === "pending").slice(0, 3);
+
   return (
     <article
       className={`warningDecision reviewDecision stackDecision ${expanded ? "isPinned" : ""}`}
@@ -1603,12 +1703,12 @@ function ReviewDecisionPanel({
           <span>专家建议确认</span>
           <strong>专家小队已完成检查，需要你处理关键建议</strong>
         </div>
-        <small>{reviews.length} 条</small>
+        <small>{confirmedCount}/{reviews.length}</small>
       </div>
       <div className="warningDecisionList">
-        {reviews.map((item, index) => (
+        {pendingReviews.map((item, index) => (
           <div
-            className={`decisionRow ${item.status === "confirmed" ? "done" : ""}`}
+            className="decisionRow"
             key={item.id}
             role="button"
             tabIndex={0}
@@ -1618,7 +1718,7 @@ function ReviewDecisionPanel({
             }}
           >
             <span className="decisionIndex">
-              {item.status === "confirmed" ? <i className="rowStatusDot success" /> : index + 1}
+              {index + 1}
             </span>
             <div className="decisionCopy">
               <span>{item.owner}</span>
@@ -1637,9 +1737,8 @@ function ReviewDecisionPanel({
                   event.stopPropagation();
                   onConfirmOne(item.id);
                 }}
-                disabled={item.status === "confirmed"}
               >
-                {item.status === "confirmed" ? "已确认" : "确认此模块"}
+                确认此项
               </button>
             </div>
           </div>
@@ -1879,17 +1978,21 @@ function HoverInspector({
 
       {topic === "warnings" ? (
         <div className="inspectorSection">
-          {warnings.map((item, index) => (
-            <div className="issueRow" key={item.id}>
-              <span>
-                <i className={`rowStatusDot ${item.accepted ? "success" : "warning"}`} />
-                {index + 1}
-              </span>
-              <strong>{item.title}</strong>
-              <p>{item.impact}</p>
-              <small>{item.accepted ? "已接受" : item.owner}</small>
-            </div>
-          ))}
+          {warnings.map((item, index) => {
+            const detail = warningEvidence(item.id);
+            return (
+              <div className="issueRow" key={item.id}>
+                <span>
+                  <i className={`rowStatusDot ${item.accepted ? "success" : "warning"}`} />
+                  {index + 1}
+                </span>
+                <strong>{item.title}</strong>
+                <p>证据：{detail.shortEvidence}</p>
+                <p>影响：{detail.shortImpact}</p>
+                <small>{item.accepted ? "已确认" : detail.status}</small>
+              </div>
+            );
+          })}
         </div>
       ) : null}
 
@@ -2070,15 +2173,46 @@ function RecognizedTable() {
 }
 
 function IssueTable() {
+  const warningIds = ["W-01", "W-02", "W-03"];
+
   return (
-    <PreviewTable
-      title="校验问题"
-      rows={[
-        ["W-01", "终点日肿瘤体积缺失", "影响 TGI 表格快照，需 SD 接受风险"],
-        ["W-02", "异常事件闭环证据不完整", "影响安全性描述，需 QA 放行"],
-        ["W-03", "p-value 方法来源需复核", "最终放行前需统计确认口径"],
-      ]}
-    />
+    <div className="warningEvidenceList">
+      <h3>校验问题</h3>
+      {warningIds.map((id) => {
+        const detail = warningEvidence(id);
+        const title =
+          id === "W-01"
+            ? "终点日肿瘤体积存在 1 处缺失"
+            : id === "W-02"
+              ? "异常事件闭环证据不完整"
+              : "p-value 方法来源需复核";
+
+        return (
+          <article className="warningEvidenceCard" key={id}>
+            <header>
+              <span>{id}</span>
+              <div>
+                <strong>{title}</strong>
+                <small>{detail.status}</small>
+              </div>
+            </header>
+            <div className="warningEvidenceGrid">
+              <section>
+                <span>来源证据</span>
+                {detail.evidence.map((line) => (
+                  <p key={line}>{line}</p>
+                ))}
+                <TraceReference label={detail.trace} />
+              </section>
+              <section>
+                <span>影响范围</span>
+                <p>{detail.impact}</p>
+              </section>
+            </div>
+          </article>
+        );
+      })}
+    </div>
   );
 }
 
