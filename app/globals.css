@@ -69,7 +69,16 @@ button {
   grid-template-columns: 280px minmax(0, 1fr) 400px;
 }
 
+.shell.sidebarCollapsed {
+  grid-template-columns: 72px minmax(0, 1fr);
+}
+
+.shell.sidebarCollapsed.isPinned {
+  grid-template-columns: 72px minmax(0, 1fr) 400px;
+}
+
 .sidebar {
+  position: relative;
   display: flex;
   height: 100vh;
   overflow: hidden;
@@ -80,7 +89,8 @@ button {
 }
 
 .brand {
-  display: flex;
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) 32px;
   align-items: center;
   gap: 9px;
   margin: 0 8px 18px;
@@ -93,6 +103,43 @@ button {
   width: 36px;
   height: 29px;
   object-fit: contain;
+}
+
+.sidebarCollapseButton,
+.panelToggle {
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  color: #697386;
+}
+
+.sidebarCollapseButton {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+}
+
+.sidebarCollapseButton:hover,
+.panelToggle:hover {
+  background: var(--soft);
+  color: var(--ink-soft);
+}
+
+.shell.sidebarCollapsed .brand {
+  grid-template-columns: 1fr;
+  justify-items: center;
+  margin-inline: 0;
+}
+
+.shell.sidebarCollapsed .brand img,
+.shell.sidebarCollapsed .brand span {
+  display: none;
+}
+
+.shell.sidebarCollapsed .sidebarCollapseButton svg,
+.shell.sidebarCollapsed .panelToggle svg {
+  transform: rotate(180deg);
 }
 
 .newChat,
@@ -112,17 +159,120 @@ button {
 .newChat {
   width: 100%;
   height: 38px;
-  margin-bottom: 22px;
+  line-height: 1;
   border-color: var(--line-strong);
   background: #fff;
   color: var(--ink);
   box-shadow: 0 1px 0 rgba(17, 19, 24, 0.02);
 }
 
+.newChat svg {
+  flex: 0 0 auto;
+  transform: translateY(0.5px);
+}
+
 .newChat:hover {
   border-color: rgba(41, 0, 255, 0.28);
   color: var(--blue);
   box-shadow: 0 10px 26px rgba(41, 0, 255, 0.06);
+}
+
+.sidebarActions {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 38px;
+  gap: 8px;
+  margin-bottom: 22px;
+}
+
+.newChatWrap {
+  position: relative;
+}
+
+.newChatMenu {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 8px);
+  left: 0;
+  display: none;
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: var(--shadow);
+  padding: 7px;
+}
+
+.newChatWrap:hover .newChatMenu,
+.newChatMenu:hover {
+  display: grid;
+  gap: 2px;
+}
+
+.newChatMenu button {
+  min-height: 34px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--ink);
+  padding: 0 10px;
+  text-align: left;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.newChatMenu button:hover {
+  background: #f7f8ff;
+  color: var(--blue);
+}
+
+.sidebarSearchButton {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-control);
+  background: #fff;
+  color: var(--ink-soft);
+}
+
+.sidebarSearchButton:hover {
+  border-color: rgba(41, 0, 255, 0.22);
+  color: var(--blue);
+  box-shadow: 0 8px 22px rgba(41, 0, 255, 0.05);
+}
+
+.sidebarSearch {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: 24px minmax(0, 1fr) 26px;
+  align-items: center;
+  gap: 7px;
+  height: 38px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-control);
+  background: #fff;
+  padding: 0 8px;
+}
+
+.sidebarSearch input {
+  width: 100%;
+  border: 0;
+  outline: 0;
+  color: var(--ink);
+  font-size: 13px;
+}
+
+.sidebarSearch button {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--body);
 }
 
 .primaryButton {
@@ -159,6 +309,14 @@ button {
   margin-bottom: 24px;
 }
 
+.projectTree {
+  align-content: start;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
 .navBlock p {
   margin: 0 0 4px;
   padding: 0 9px;
@@ -167,10 +325,263 @@ button {
   font-weight: 750;
 }
 
+.navBlockHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-right: 4px;
+}
+
+.navBlockHeader p {
+  margin-bottom: 4px;
+}
+
+.navBlockHeader button {
+  display: grid;
+  width: 26px;
+  height: 26px;
+  place-items: center;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--muted);
+  opacity: 0;
+  transition:
+    opacity 140ms ease,
+    background 140ms ease;
+}
+
+.navBlock:hover .navBlockHeader button {
+  opacity: 1;
+}
+
+.navBlockHeader button:hover {
+  background: var(--soft);
+  color: var(--ink-soft);
+}
+
+.projectGroup {
+  position: relative;
+  display: grid;
+  gap: 3px;
+}
+
+.projectRowWrap {
+  position: relative;
+}
+
+.projectRowWrap:hover,
+.chatRow:hover,
+.chatRow:focus-within {
+  z-index: 60;
+}
+
+.projectRow,
+.chatRow {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--ink-soft);
+  text-align: left;
+}
+
+.projectRow {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) 18px;
+  align-items: center;
+  gap: 10px;
+  min-height: 42px;
+  border-radius: 12px;
+  padding: 7px 9px;
+}
+
+.projectRow:hover,
+.projectRowWrap:hover .projectRow,
+.chatRow:hover {
+  background: #fafbfc;
+}
+
+.projectRow > svg:first-child {
+  color: var(--ink-soft);
+}
+
+.projectRow svg.isOpen {
+  transform: rotate(90deg);
+}
+
+.projectRow strong {
+  overflow: hidden;
+  color: var(--ink-soft);
+  font-size: 14.5px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.projectHoverActions,
+.chatHoverActions {
+  position: absolute;
+  z-index: 70;
+  right: 8px;
+  display: none;
+  align-items: center;
+  gap: 3px;
+}
+
+.projectHoverActions {
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.projectRowWrap:hover .projectHoverActions,
+.projectHoverActions:focus-within,
+.chatRow:hover .chatHoverActions,
+.chatHoverActions:focus-within {
+  display: inline-flex;
+}
+
+.projectHoverActions > button,
+.projectHoverActions .menuWrap > button,
+.chatHoverActions > button,
+.chatHoverActions .menuWrap > button {
+  display: grid;
+  width: 26px;
+  height: 26px;
+  place-items: center;
+  border: 0;
+  border-radius: 8px;
+  background: #fff;
+  color: var(--body);
+}
+
+.projectHoverActions > button:hover,
+.projectHoverActions .menuWrap > button:hover,
+.chatHoverActions > button:hover,
+.chatHoverActions .menuWrap > button:hover {
+  background: var(--soft-strong);
+  color: var(--ink-soft);
+}
+
+.sidebarMenu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 100;
+  display: none;
+  width: 210px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: var(--shadow);
+  padding: 6px;
+}
+
+.menuWrap:hover .sidebarMenu,
+.menuWrap:focus-within .sidebarMenu {
+  display: grid;
+}
+
+.sidebarMenu button {
+  display: flex;
+  min-height: 34px;
+  align-items: center;
+  gap: 9px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ink-soft);
+  padding: 0 10px;
+  font-size: 13px;
+  text-align: left;
+}
+
+.sidebarMenu button:hover {
+  background: var(--soft);
+  color: var(--ink);
+}
+
+.chatTree {
+  display: grid;
+  gap: 1px;
+  padding: 0 0 7px 16px;
+}
+
+.chatRow {
+  position: relative;
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  min-height: 39px;
+  border-radius: 12px;
+  padding: 7px 9px;
+  cursor: pointer;
+}
+
+.chatRow.active {
+  background: #f7f8fb;
+}
+
+.chatRow strong {
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chatRow small {
+  color: var(--muted);
+  font-size: 12.5px;
+  white-space: nowrap;
+}
+
+.chatRow:hover small,
+.chatRow:focus-within small {
+  opacity: 0;
+}
+
+.chatHoverActions {
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.chatMenu {
+  right: -2px;
+  width: 160px;
+}
+
+.pinnedMarker {
+  position: absolute;
+  left: -13px;
+  color: var(--muted);
+}
+
+.chatRow.status-pending .sidebarIcon,
+.sidebarIcon.pending {
+  color: #9a7a3a;
+}
+
+.chatRow.status-blocked .sidebarIcon,
+.sidebarIcon.blocked {
+  color: #a46560;
+}
+
+.chatRow.status-done .sidebarIcon,
+.sidebarIcon.done {
+  color: #5f846f;
+}
+
+.chatRow.status-running .sidebarIcon,
+.sidebarIcon.running {
+  color: #6f7886;
+}
+
 .sidebarRow {
   position: relative;
   display: grid;
-  grid-template-columns: 24px minmax(0, 1fr) 15px;
+  grid-template-columns: 24px minmax(0, 1fr) 18px;
   align-items: center;
   gap: 10px;
   width: 100%;
@@ -189,11 +600,14 @@ button {
 
 .sidebarRow.active {
   background: #f7f8fb;
-  box-shadow: inset 2px 0 0 var(--ink-soft);
 }
 
 .sidebarRow:hover {
   background: #fafbfc;
+}
+
+.sidebarRow svg.isOpen {
+  transform: rotate(90deg);
 }
 
 .sidebarIcon {
@@ -209,15 +623,19 @@ button {
 }
 
 .sidebarRow.status-pending .sidebarIcon {
-  color: var(--amber);
+  color: #9a7a3a;
 }
 
 .sidebarRow.status-blocked .sidebarIcon {
-  color: var(--red);
+  color: #a46560;
 }
 
 .sidebarRow.status-done .sidebarIcon {
-  color: var(--green);
+  color: #5f846f;
+}
+
+.sidebarRow.status-running .sidebarIcon {
+  color: #6f7886;
 }
 
 .sidebarRow span {
@@ -257,6 +675,50 @@ button {
   background: var(--green);
 }
 
+.sidebarStatusDot {
+  justify-self: center;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--muted);
+}
+
+.sidebarStatusDot.pending {
+  background: #b89b5a;
+}
+
+.sidebarStatusDot.blocked {
+  background: #b47a75;
+}
+
+.sidebarStatusDot.done {
+  background: #6f917f;
+}
+
+.sidebarStatusDot.running {
+  background: #9aa3af;
+}
+
+.sidebarMore {
+  position: absolute;
+  right: 7px;
+  display: none;
+  width: 26px;
+  height: 26px;
+  place-items: center;
+  border-radius: 9px;
+  background: #fff;
+  color: var(--body);
+}
+
+.sidebarRow:hover .sidebarMore {
+  display: grid;
+}
+
+.sidebarRow:hover .sidebarStatusDot {
+  opacity: 0;
+}
+
 .conversations {
   align-content: start;
   flex: 1;
@@ -277,11 +739,40 @@ button {
 
 .account {
   display: grid;
-  grid-template-columns: 36px minmax(0, 1fr) 18px;
+  grid-template-columns: 30px minmax(0, 1fr) 32px;
   align-items: center;
   gap: 10px;
+  margin-top: auto;
   border-top: 1px solid var(--line);
   padding: 14px 4px 0;
+}
+
+.account button {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--ink-soft);
+}
+
+.account button:hover {
+  background: var(--soft);
+}
+
+.agentMark {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+}
+
+.agentMark img {
+  width: 24px;
+  height: 22px;
+  object-fit: contain;
 }
 
 .avatar {
@@ -312,6 +803,87 @@ button {
   white-space: nowrap;
 }
 
+.shell.sidebarCollapsed .sidebar {
+  padding-inline: 12px;
+}
+
+.shell.sidebarCollapsed .sidebarActions {
+  grid-template-columns: 1fr;
+  justify-items: center;
+}
+
+.shell.sidebarCollapsed .newChat {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border-radius: 14px;
+  font-size: 0;
+}
+
+.shell.sidebarCollapsed .newChat svg {
+  margin: 0;
+  transform: translateY(0);
+}
+
+.shell.sidebarCollapsed .newChatMenu,
+.shell.sidebarCollapsed .sidebarSearch,
+.shell.sidebarCollapsed .sidebarSearchButton,
+.shell.sidebarCollapsed .navBlock p,
+.shell.sidebarCollapsed .navBlockHeader,
+.shell.sidebarCollapsed .projectRow strong,
+.shell.sidebarCollapsed .projectRow > svg:last-child,
+.shell.sidebarCollapsed .chatRow strong,
+.shell.sidebarCollapsed .chatRow small,
+.shell.sidebarCollapsed .projectHoverActions,
+.shell.sidebarCollapsed .chatHoverActions,
+.shell.sidebarCollapsed .pinnedMarker,
+.shell.sidebarCollapsed .sidebarRow > span:not(.sidebarIcon),
+.shell.sidebarCollapsed .sidebarRow > svg,
+.shell.sidebarCollapsed .sidebarStatusDot,
+.shell.sidebarCollapsed .sidebarMore,
+.shell.sidebarCollapsed .account > div:nth-child(2),
+.shell.sidebarCollapsed .account button {
+  display: none;
+}
+
+.shell.sidebarCollapsed .navBlock {
+  justify-items: center;
+}
+
+.shell.sidebarCollapsed .projectTree {
+  overflow: hidden;
+  padding-right: 0;
+}
+
+.shell.sidebarCollapsed .projectGroup,
+.shell.sidebarCollapsed .chatTree {
+  justify-items: center;
+  padding-left: 0;
+}
+
+.shell.sidebarCollapsed .projectRow,
+.shell.sidebarCollapsed .chatRow {
+  width: 42px;
+  min-height: 42px;
+  grid-template-columns: 1fr;
+  justify-items: center;
+  padding: 8px;
+}
+
+.shell.sidebarCollapsed .sidebarRow {
+  width: 42px;
+  min-height: 42px;
+  grid-template-columns: 1fr;
+  justify-items: center;
+  padding: 8px;
+}
+
+.shell.sidebarCollapsed .account {
+  grid-template-columns: 1fr;
+  justify-items: center;
+  padding-inline: 0;
+}
+
 .workspace {
   position: relative;
   display: grid;
@@ -340,6 +912,13 @@ button {
   font-size: 14px;
 }
 
+.panelToggle {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  margin-right: 1px;
+}
+
 .breadcrumb strong {
   color: var(--ink);
 }
@@ -363,6 +942,11 @@ button {
 .agentIcon {
   width: 36px;
   height: 36px;
+}
+
+.agentIcon.pending {
+  background: #f8f5ee;
+  color: #8b6f38;
 }
 
 .iconButton {

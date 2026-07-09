@@ -2,9 +2,54 @@
 
 Clickable Next.js UX prototype for a tumor experiment report agent workspace.
 
-Preview: https://tumor-report-agent-prototype.vercel.app/
+## Project Location
+
+Local project folder:
+
+```text
+G:\实习\澎立肿瘤报告项目\prototype-agent-workbench
+```
+
+GitHub remote:
+
+```text
+https://github.com/wongolivia336-a11y/tumor-report-agent-prototype-.git
+```
+
+Preview:
+
+- Local dev server: http://localhost:4196
+- Deployed preview: https://tumor-report-agent-prototype.vercel.app/
 
 This repository is intended for design review, user-flow validation, and engineering discussion with full-stack engineers. It is not production backend code.
+
+## Nearby Folders
+
+- `C:\Users\HP\.codex\sessions\2026\07\09`
+  Codex session logs for July 9, 2026. These `rollout-*.jsonl` files are conversation/execution records, not project source code.
+
+- `G:\实习\wongolivia336-a11y`
+  A separate GitHub profile README repository for the `wongolivia336-a11y` account. It is not the tumor report prototype project.
+
+## Repository Map
+
+- `app/`
+  Next.js App Router entry files. `app/page.tsx` renders the prototype screen and `app/globals.css` contains the main visual system.
+
+- `components/`
+  React UI components. The main workbench prototype currently lives in `components/ReportWorkbench.tsx`.
+
+- `lib/`
+  Mock data, workflow helpers, type definitions, and the draft API contract shape.
+
+- `docs/`
+  Engineering handoff and API contract notes.
+
+- `public/`
+  Static assets such as the BioAZ logo.
+
+- `output/`
+  Local generated verification artifacts. This is not source code.
 
 ## Tech Stack
 

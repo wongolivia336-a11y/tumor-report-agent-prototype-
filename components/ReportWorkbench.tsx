@@ -5,20 +5,22 @@ import {
   Check,
   ChevronRight,
   Circle,
+  Edit3,
   Download,
   Eye,
   FileArchive,
   FileCheck,
   FileJson,
+  Folder,
   FileSpreadsheet,
   FileText,
-  Home as HomeIcon,
   MessageSquare,
   MoreHorizontal,
   PanelRight,
   Paperclip,
   Pin,
   PinOff,
+  Search,
   Sparkles,
   SearchCheck,
   Send,
@@ -74,6 +76,7 @@ export default function ReportWorkbench() {
   const [composerText, setComposerText] = useState("");
   const [userEvents, setUserEvents] = useState<UserEvent[]>([]);
   const [followupState, setFollowupState] = useState<FollowupState>("idle");
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const composerInputRef = useRef<HTMLInputElement>(null);
   const chatScrollerRef = useRef<HTMLDivElement>(null);
@@ -295,14 +298,14 @@ export default function ReportWorkbench() {
   };
 
   return (
-    <main className={`shell ${inspectorPinned ? "isPinned" : ""}`}>
-      <WorkspaceSidebar />
+    <main className={`shell ${inspectorPinned ? "isPinned" : ""} ${sidebarCollapsed ? "sidebarCollapsed" : ""}`}>
+      <WorkspaceSidebar
+        collapsed={sidebarCollapsed}
+        onToggleCollapsed={() => setSidebarCollapsed((current) => !current)}
+      />
       <section className="workspace">
         <header className="topbar">
           <div className="breadcrumb">
-            <PanelRight size={18} />
-            <span>肿瘤报告</span>
-            <ChevronRight size={15} />
             <span>肿瘤药效报告</span>
             <ChevronRight size={15} />
             <strong>样本 9 双批次报告</strong>
@@ -311,7 +314,7 @@ export default function ReportWorkbench() {
 
         <header className="agentHeader">
           <div className="agentTitle">
-            <span className="agentIcon">
+            <span className="agentIcon pending">
               <FileCheck size={18} />
             </span>
             <span>肿瘤报告智能体</span>
@@ -441,54 +444,143 @@ export default function ReportWorkbench() {
   );
 }
 
-function WorkspaceSidebar() {
+function WorkspaceSidebar({
+  collapsed,
+  onToggleCollapsed,
+}: {
+  collapsed: boolean;
+  onToggleCollapsed: () => void;
+}) {
+  const [openProjects, setOpenProjects] = useState<Record<string, boolean>>({
+    oncology: true,
+    dmpk: false,
+    qa: false,
+  });
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [pinnedChats, setPinnedChats] = useState<Record<string, boolean>>({
+    sample9: true,
+  });
+
+  const toggleProject = (id: string) => {
+    setOpenProjects((current) => ({ ...current, [id]: !current[id] }));
+  };
+
+  const togglePinned = (id: string) => {
+    setPinnedChats((current) => ({ ...current, [id]: !current[id] }));
+  };
+
   return (
     <aside className="sidebar">
       <div className="brand">
         <img src="/logo/bioaz-logo.svg" alt="" />
         <span>BioAZ</span>
+        <button
+          className="sidebarCollapseButton"
+          type="button"
+          onClick={onToggleCollapsed}
+          aria-label={collapsed ? "展开侧边栏" : "折叠侧边栏"}
+        >
+          <PanelRight size={17} />
+        </button>
       </div>
-      <button className="newChat" type="button">
-        <MessageSquare size={15} />
-        新建对话
-      </button>
 
-      <nav className="navBlock" aria-label="工作空间">
-        <p>工作空间</p>
-        <SidebarRow icon={<HomeIcon size={16} />} title="肿瘤报告" meta="6 个项目" />
-        <SidebarRow icon={<HomeIcon size={16} />} title="DMPK 报价" meta="2 个项目" />
-        <SidebarRow icon={<HomeIcon size={16} />} title="QA 审核" meta="1 个项目" />
-      </nav>
+      <div className="sidebarActions">
+        {searchOpen ? (
+          <div className="sidebarSearch">
+            <Search size={15} />
+            <input autoFocus placeholder="搜索对话" />
+            <button type="button" onClick={() => setSearchOpen(false)} aria-label="关闭搜索">
+              <X size={14} />
+            </button>
+          </div>
+        ) : (
+          <>
+            <div className="newChatWrap">
+              <button className="newChat" type="button">
+                <MessageSquare size={15} />
+                新建对话
+              </button>
+              <div className="newChatMenu">
+                <button type="button">新建报告任务</button>
+                <button type="button">新建报价任务</button>
+                <button type="button">新建 QA 审核</button>
+              </div>
+            </div>
+            <button className="sidebarSearchButton" type="button" onClick={() => setSearchOpen(true)} aria-label="搜索">
+              <Search size={17} />
+            </button>
+          </>
+        )}
+      </div>
 
-      <nav className="navBlock" aria-label="项目">
+      <nav className="navBlock projectTree" aria-label="项目">
         <p>项目</p>
-        <SidebarRow
-          icon={<FileCheck size={16} />}
+        <ProjectGroup
+          id="oncology"
           title="肿瘤药效报告"
-          meta="共 3 个对话"
+          open={openProjects.oncology}
+          onToggle={() => toggleProject("oncology")}
+          chats={[
+            {
+              id: "sample9",
+              title: "样本 9 双批次报告",
+              time: "36 分钟前",
+              status: "pending",
+              active: true,
+            },
+            {
+              id: "sample5",
+              title: "样本 5 批次缺失阻断",
+              time: "2 周",
+              status: "blocked",
+            },
+            {
+              id: "sample7",
+              title: "样本 7 单批次回归",
+              time: "2 周",
+              status: "done",
+            },
+            {
+              id: "ct26",
+              title: "CT26 交付包复核",
+              time: "1 小时前",
+              status: "running",
+            },
+          ]}
+          pinnedChats={pinnedChats}
+          onTogglePinned={togglePinned}
         />
-      </nav>
-
-      <nav className="navBlock conversations" aria-label="对话">
-        <p>对话</p>
-        <SidebarRow
-          active
-          icon={<FileText size={16} />}
-          title="样本 9 双批次报告"
-          status="pending"
-          statusLabel="待 SD / QA 放行"
+        <ProjectGroup
+          id="dmpk"
+          title="DMPK 报价"
+          open={openProjects.dmpk}
+          onToggle={() => toggleProject("dmpk")}
+          chats={[
+            {
+              id: "dmpk-quote",
+              title: "Balb/c nude 报价整理",
+              time: "3 天前",
+              status: "running",
+            },
+          ]}
+          pinnedChats={pinnedChats}
+          onTogglePinned={togglePinned}
         />
-        <SidebarRow
-          icon={<FileText size={16} />}
-          title="样本 5 批次缺失阻断"
-          status="blocked"
-          statusLabel="blocked"
-        />
-        <SidebarRow
-          icon={<FileText size={16} />}
-          title="样本 7 单批次回归"
-          status="done"
-          statusLabel="已导出"
+        <ProjectGroup
+          id="qa"
+          title="QA 审核"
+          open={openProjects.qa}
+          onToggle={() => toggleProject("qa")}
+          chats={[
+            {
+              id: "qa-package",
+              title: "报告交付包 QA 复核",
+              time: "1 周",
+              status: "done",
+            },
+          ]}
+          pinnedChats={pinnedChats}
+          onTogglePinned={togglePinned}
         />
       </nav>
 
@@ -498,9 +590,150 @@ function WorkspaceSidebar() {
           <strong>Admin</strong>
           <span>admin@example.com</span>
         </div>
-        <MoreHorizontal size={17} />
+        <button type="button" aria-label="账户更多操作">
+          <MoreHorizontal size={17} />
+        </button>
       </div>
     </aside>
+  );
+}
+
+type SidebarChat = {
+  id: string;
+  title: string;
+  time: string;
+  status: "pending" | "blocked" | "done" | "running";
+  active?: boolean;
+};
+
+function ProjectGroup({
+  title,
+  open,
+  chats,
+  pinnedChats,
+  onToggle,
+  onTogglePinned,
+}: {
+  id: string;
+  title: string;
+  open: boolean;
+  chats: SidebarChat[];
+  pinnedChats: Record<string, boolean>;
+  onToggle: () => void;
+  onTogglePinned: (id: string) => void;
+}) {
+  return (
+    <div className={`projectGroup ${open ? "isOpen" : ""}`}>
+      <div className="projectRowWrap">
+        <button className="projectRow" type="button" onClick={onToggle}>
+          <Folder size={16} />
+          <strong>{title}</strong>
+          <ChevronRight className={open ? "isOpen" : ""} size={15} />
+        </button>
+        <div className="projectHoverActions">
+          <div className="menuWrap">
+            <button type="button" aria-label={`${title} 更多操作`}>
+              <MoreHorizontal size={15} />
+            </button>
+            <div className="sidebarMenu">
+              <button type="button">
+                <Pin size={14} />
+                置顶项目
+              </button>
+              <button type="button">
+                <Folder size={14} />
+                在资源管理器中打开
+              </button>
+              <button type="button">
+                <Edit3 size={14} />
+                重命名项目
+              </button>
+              <button type="button">
+                <FileArchive size={14} />
+                归档对话
+              </button>
+              <button type="button">
+                <X size={14} />
+                移除
+              </button>
+            </div>
+          </div>
+          <button type="button" aria-label={`在 ${title} 下新建对话`}>
+            <Edit3 size={15} />
+          </button>
+        </div>
+      </div>
+
+      {open ? (
+        <div className="chatTree">
+          {chats.map((chat) => (
+            <ChatRow
+              key={chat.id}
+              chat={chat}
+              pinned={Boolean(pinnedChats[chat.id])}
+              onTogglePinned={() => onTogglePinned(chat.id)}
+            />
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function ChatRow({
+  chat,
+  pinned,
+  onTogglePinned,
+}: {
+  chat: SidebarChat;
+  pinned: boolean;
+  onTogglePinned: () => void;
+}) {
+  return (
+    <div
+      className={`chatRow ${chat.active ? "active" : ""} status-${chat.status}`}
+      title={chat.title}
+      role="button"
+      tabIndex={0}
+    >
+      <span className={`sidebarIcon ${chat.status}`}>
+        <FileText size={16} />
+      </span>
+      <strong>{chat.title}</strong>
+      <small>{chat.time}</small>
+      <span className="chatHoverActions">
+        <button
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation();
+            onTogglePinned();
+          }}
+          aria-label={pinned ? "取消置顶对话" : "置顶对话"}
+        >
+          {pinned ? <PinOff size={14} /> : <Pin size={14} />}
+        </button>
+        <span className="menuWrap">
+          <button type="button" aria-label={`${chat.title} 更多操作`} onClick={(event) => event.stopPropagation()}>
+            <MoreHorizontal size={14} />
+          </button>
+          <span className="sidebarMenu chatMenu">
+            <button type="button">
+              <Edit3 size={14} />
+              重命名对话
+            </button>
+            <button type="button">
+              <FileArchive size={14} />
+              归档对话
+            </button>
+            <button type="button">
+              <X size={14} />
+              移除
+            </button>
+          </span>
+        </span>
+      </span>
+      {pinned ? <Pin className="pinnedMarker" size={13} /> : null}
+    </div>
   );
 }
 
@@ -511,26 +744,36 @@ function SidebarRow({
   status,
   statusLabel,
   active,
+  open,
+  onClick,
 }: {
   icon: React.ReactNode;
   title: string;
   meta?: string;
-  status?: "pending" | "blocked" | "done";
+  status?: "pending" | "blocked" | "done" | "running";
   statusLabel?: string;
   active?: boolean;
+  open?: boolean;
+  onClick?: () => void;
 }) {
   return (
     <button
       className={`sidebarRow ${active ? "active" : ""} ${status ? `status-${status}` : ""}`}
       type="button"
       title={statusLabel}
+      onClick={onClick}
     >
-      <span className="sidebarIcon">{icon}</span>
+      <span className={`sidebarIcon ${status ?? ""}`}>{icon}</span>
       <span>
         <strong>{title}</strong>
-        {status ? null : <small>{meta}</small>}
+        {meta ? <small>{meta}</small> : null}
       </span>
-      <ChevronRight size={15} />
+      {status ? <i className={`sidebarStatusDot ${status}`} /> : <ChevronRight className={open ? "isOpen" : ""} size={15} />}
+      {status ? (
+        <span className="sidebarMore">
+          <MoreHorizontal size={15} />
+        </span>
+      ) : null}
     </button>
   );
 }
