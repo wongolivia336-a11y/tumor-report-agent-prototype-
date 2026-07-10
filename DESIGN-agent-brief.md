@@ -72,6 +72,11 @@ BioAZ Clinical Canvas 是澎立肿瘤实验报告 Agent 工作空间的产品界
 - Main conversation width: 820-900px.
 - Upload / preparation panel width: 720-760px.
 - Right panel width: 360-400px.
+- Right-panel cards use one stable row grammar: content on the left, icon actions fixed on the right. Do not let preview buttons enter the text flow.
+- Repeated right-panel cards should keep a consistent minimum height, chip position, title weight, evidence line, status line, and right-side action alignment.
+- Confirmed/pending state in repeated right-panel cards should be carried by the ID chip color, not repeated status text. Use low-saturation green for confirmed and muted amber for pending.
+- The `查看 warning 证据` and `查看审核问题列表` inspector topics use the same card grammar as the deliverables recall area: status chip, title, compact meta lines, and right-side preview icon.
+- Evidence and impact summaries inside right-panel cards are secondary text: 12px, muted color, tight line-height. They should never visually compete with the title.
 - Composer stays sticky at the bottom of the center workspace.
 - Workspaces should feel like production SaaS: dense enough for repeated use, but not cramped.
 
@@ -176,6 +181,8 @@ BioAZ uses a soft squircle language: rounded enough to feel modern, not so round
 - Decision rows should feel like business evidence, not engineering logs.
 - Actions stay at the row or panel bottom depending on density.
 - Warning confirmation means accepting risk into generation, not confirming final scientific conclusions.
+- Warning and expert suggestion rows both expose a preview icon at row level and panel level. Row click can open preview; confirmation buttons must remain explicit.
+- Preview defaults are task-specific: warning opens `校验问题`; expert suggestion opens `建议列表`.
 - When the last warning or expert suggestion is confirmed, the user side automatically sends a completion bubble before the next agent response.
 - Completed warning and review rows switch their status dot to green.
 
@@ -188,6 +195,10 @@ BioAZ uses a soft squircle language: rounded enough to feel modern, not so round
 - More menu may include opening another way and viewing business evidence.
 - Artifact preview is a secondary reader, not a file explorer: show business-readable structure, key tables, QC gates, package composition, and evidence summaries; hide signed URLs, internal bucket paths, full manifest, sha, trace, and debug logs by default.
 - Main conversation artifact preview and right-panel artifact preview must open the same modal system so users learn one interaction pattern.
+- After report generation, the right panel also acts as the recall surface for confirmed warning and expert suggestion details.
+- Confirmed warning rows stay visible as `已确认 warning`; each row keeps its source evidence summary, status, and preview icon.
+- Expert suggestion rows stay visible as `专家建议摘要`; each row keeps its suggestion summary, status, and preview icon.
+- Warning recall and expert suggestion recall must use the same visual row grammar as deliverables: rounded card, left content stack, right icon action, no centered titles or orphaned buttons.
 
 ### Expert Review
 
@@ -195,6 +206,9 @@ BioAZ uses a soft squircle language: rounded enough to feel modern, not so round
 - It should be represented as the third thinking chain after validation and generation.
 - It follows the same pattern: thinking chain first, collapse after completion, agent reply remains visible.
 - Expert names may be BioAZ Blue references with hover details.
+- Expert suggestions are post-generation human review items. They do not block the already completed Agent generation step.
+- Expert suggestion wording should emphasize final release, SD / QA / statistics confirmation, or human revision before archive/export; avoid implying the Agent must regenerate unless the user explicitly asks.
+- Expert suggestion preview uses the same evidence structure as warning preview: `来源证据` and `影响范围`.
 - Experts are not the protagonist. The user’s next action and responsibility are the protagonist.
 - After all expert suggestions are confirmed, show an `专家建议文档` artifact card as a lightweight review deliverable.
 

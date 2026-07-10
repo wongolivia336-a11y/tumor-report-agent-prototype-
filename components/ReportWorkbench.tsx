@@ -99,6 +99,11 @@ export default function ReportWorkbench() {
     () => reviewActionsBase.map((step) => ({ ...step, status: "done" as const })),
     [],
   );
+  const openWorkflowPreview = (kind: PreviewKind, section: PreviewSection = "issues") => {
+    setPreviewKind(kind);
+    setPreviewSection(section);
+    setPreviewOpen(true);
+  };
   const openArtifactPreview = (kind: ArtifactPreviewKind) => {
     setArtifactPreviewKind(kind);
     setArtifactPreviewOpen(true);
@@ -369,11 +374,7 @@ export default function ReportWorkbench() {
           onAcceptWarnings={acceptAllWarnings}
           onAcceptWarning={acceptWarning}
           onRejectWarnings={rejectWarnings}
-          onPreview={() => {
-            setPreviewKind("validation");
-            setPreviewSection("issues");
-            setPreviewOpen(true);
-          }}
+          onPreview={() => openWorkflowPreview("validation", "issues")}
           onConfirmReview={confirmReview}
           onConfirmAllReviews={confirmAllReviews}
           onAskFollowup={askFollowup}
@@ -386,11 +387,7 @@ export default function ReportWorkbench() {
             setInspectorTopic(topic);
             setInspectorOpen(true);
           }}
-          onPreviewReview={() => {
-            setPreviewKind("review");
-            setPreviewSection("issues");
-            setPreviewOpen(true);
-          }}
+          onPreviewReview={() => openWorkflowPreview("review", "issues")}
         />
 
         <input
@@ -423,6 +420,7 @@ export default function ReportWorkbench() {
         }}
         onPin={() => setInspectorPinned((current) => !current)}
         onPreviewArtifact={openArtifactPreview}
+        onPreviewWorkflow={openWorkflowPreview}
       />
 
       {previewOpen ? (
@@ -1575,6 +1573,58 @@ function warningEvidence(id: string) {
   return details[id] ?? details["W-01"];
 }
 
+function reviewEvidence(id: string) {
+  const details: Record<
+    string,
+    {
+      shortEvidence: string;
+      shortImpact: string;
+      evidence: string[];
+      impact: string;
+      trace: string;
+    }
+  > = {
+    "R-01": {
+      shortEvidence: "QC report / TGI trend / Day 28 endpoint",
+      shortImpact: "结论措辞与 SD 最终签核口径",
+      evidence: [
+        "来源：qc-report.md / Statistics review / TGI wording",
+        "位置：Day 28 TGI summary，TV/TGI 显著性描述与瘤重结论存在口径差异",
+        "对照：validation-report.json 中 W-01 的终点日缺失值说明",
+      ],
+      impact:
+        "报告产物已生成，不阻塞后续 Agent 动作；建议 SD 在最终放行前确认结论措辞，必要时修改 Word 报告中的结论段、TGI 表格脚注和 Figure 2 caption。",
+      trace: "qc-report.md",
+    },
+    "R-02": {
+      shortEvidence: "Validation report / AE log / humane endpoint",
+      shortImpact: "安全性模块修订与 QA 放行记录",
+      evidence: [
+        "来源：validation-report.json / Safety review / AE closure",
+        "位置：AE log / Mouse C-07 / Day 24，closed / resolved 字段仍需人工补充",
+        "对照：方案文件 Safety Observation 章节与 W-02 的异常事件闭环 warning",
+      ],
+      impact:
+        "报告产物已生成，不影响当前交付物预览；建议 QA 或 SD 补充异常事件处置依据，再决定是否修订体重/安全性模块描述和审核备注。",
+      trace: "validation-report.json",
+    },
+    "R-03": {
+      shortEvidence: "Recognized context / p-value method / Prism QC",
+      shortImpact: "统计方法说明与交付格式复核",
+      evidence: [
+        "来源：recognized-context.json / Statistical Analysis / p-value method",
+        "位置：Group summary / TGI summary，p-value method 未绑定到原始统计说明",
+        "对照：qc-report.md 中 Prism/OLE 依赖和导出格式复核项",
+      ],
+      impact:
+        "报告产物已生成，不回退生成流程；建议统计角色补充方法来源或脚本依据，并在最终归档前复核 Word 目录、图表编号和 Prism 源文件依赖。",
+      trace: "recognized-context.json",
+    },
+  };
+
+  return details[id] ?? details["R-01"];
+}
+
 function WarningDecisionPanel({
   warnings,
   onAcceptAll,
@@ -1706,7 +1756,9 @@ function ReviewDecisionPanel({
         <small>{confirmedCount}/{reviews.length}</small>
       </div>
       <div className="warningDecisionList">
-        {pendingReviews.map((item, index) => (
+        {pendingReviews.map((item, index) => {
+          const detail = reviewEvidence(item.id);
+          return (
           <div
             className="decisionRow"
             key={item.id}
@@ -1726,10 +1778,23 @@ function ReviewDecisionPanel({
               <p>
                 <ExpertName name={expertNameFromSource(item.source)} /> {stripExpertPrefix(item.source)}
                 {" "}
-                <TraceReference label={item.id === "R-03" ? "qc-report.md" : "validation-report.json"} />
+                <TraceReference label={detail.trace} />
               </p>
+              <p>证据：{detail.shortEvidence}</p>
+              <p>影响：{detail.shortImpact}</p>
             </div>
             <div className="decisionInlineActions">
+              <button
+                className="decisionIcon"
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onPreviewEvidence();
+                }}
+                aria-label={`${item.title}预览建议依据`}
+              >
+                <Eye size={15} />
+              </button>
               <button
                 className="decisionPrimary"
                 type="button"
@@ -1742,7 +1807,8 @@ function ReviewDecisionPanel({
               </button>
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
       <div className="warningActions">
         <button className="decisionIcon" type="button" onClick={onPreviewEvidence} aria-label="查看专家建议预览">
@@ -1925,6 +1991,7 @@ function HoverInspector({
   onMouseLeave,
   onPin,
   onPreviewArtifact,
+  onPreviewWorkflow,
 }: {
   open: boolean;
   pinned: boolean;
@@ -1938,6 +2005,7 @@ function HoverInspector({
   onMouseLeave: () => void;
   onPin: () => void;
   onPreviewArtifact: (kind: ArtifactPreviewKind) => void;
+  onPreviewWorkflow: (kind: PreviewKind, section?: PreviewSection) => void;
 }) {
   const processSteps = topic === "generation" ? generationSteps : validationSteps;
 
@@ -1981,15 +2049,24 @@ function HoverInspector({
           {warnings.map((item, index) => {
             const detail = warningEvidence(item.id);
             return (
-              <div className="issueRow" key={item.id}>
-                <span>
-                  <i className={`rowStatusDot ${item.accepted ? "success" : "warning"}`} />
-                  {index + 1}
-                </span>
-                <strong>{item.title}</strong>
-                <p>证据：{detail.shortEvidence}</p>
-                <p>影响：{detail.shortImpact}</p>
-                <small>{item.accepted ? "已确认" : detail.status}</small>
+              <div className="issueRow compact issueRowWithAction" key={item.id}>
+                <div className="issueRowMain">
+                  <span className={item.accepted ? "statusChip confirmed" : "statusChip pending"}>
+                    {item.id}
+                  </span>
+                  <strong>{item.title}</strong>
+                  <p className="issueMeta">证据：{detail.shortEvidence}</p>
+                  <p className="issueMeta">影响：{detail.shortImpact}</p>
+                </div>
+                <div className="deliverableActions">
+                  <button
+                    type="button"
+                    aria-label={`${item.title}预览校验问题`}
+                    onClick={() => onPreviewWorkflow("validation", "issues")}
+                  >
+                    <Eye size={14} />
+                  </button>
+                </div>
               </div>
             );
           })}
@@ -1998,17 +2075,30 @@ function HoverInspector({
 
       {topic === "review" ? (
         <div className="inspectorSection">
-          {reviews.map((item, index) => (
-            <div className="issueRow" key={item.id}>
-              <span>
-                <i className={`rowStatusDot ${item.status === "confirmed" ? "success" : ""}`} />
-                {index + 1}
-              </span>
-              <strong>{item.title}</strong>
-              <p>{item.source}</p>
-              <small>{item.status === "confirmed" ? "已确认" : item.owner}</small>
+          {reviews.map((item) => {
+            const detail = reviewEvidence(item.id);
+            return (
+            <div className="issueRow compact issueRowWithAction" key={item.id}>
+              <div className="issueRowMain">
+                <span className={item.status === "confirmed" ? "statusChip confirmed" : "statusChip pending"}>
+                  {item.id}
+                </span>
+                <strong>{item.title}</strong>
+                <p className="issueMeta">{stripExpertPrefix(item.source)}</p>
+                <p className="issueMeta">影响：{detail.shortImpact}</p>
+              </div>
+              <div className="deliverableActions">
+                <button
+                  type="button"
+                  aria-label={`${item.title}预览专家建议`}
+                  onClick={() => onPreviewWorkflow("review", "issues")}
+                >
+                  <Eye size={14} />
+                </button>
+              </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       ) : null}
 
@@ -2054,15 +2144,52 @@ function HoverInspector({
           ))}
           <div className="panelDivider" />
           <div className="panelIntro compact">
+            <span>Warning</span>
+            <strong>风险回看</strong>
+            <p>确认后的风险项保留在这里，可在最终放行前回看来源证据和影响范围。</p>
+          </div>
+          {warnings.map((item) => {
+            const detail = warningEvidence(item.id);
+            return (
+              <div className="issueRow compact issueRowWithAction" key={item.id}>
+                <div className="issueRowMain">
+                  <span className={item.accepted ? "statusChip confirmed" : "statusChip pending"}>{item.id}</span>
+                  <strong>{item.title}</strong>
+                  <p className="issueMeta">证据：{detail.shortEvidence}</p>
+                </div>
+                <div className="deliverableActions">
+                  <button
+                    type="button"
+                    aria-label={`${item.title}预览校验问题`}
+                    onClick={() => onPreviewWorkflow("validation", "issues")}
+                  >
+                    <Eye size={14} />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+          <div className="panelDivider" />
+          <div className="panelIntro compact">
             <span>Review</span>
             <strong>专家建议摘要</strong>
           </div>
           {reviews.slice(0, 3).map((item) => (
-            <div className="issueRow compact" key={item.id}>
-              <span>{item.id}</span>
-              <strong>{item.title}</strong>
-              <p>{stripExpertPrefix(item.source)}</p>
-              <small>{item.status === "confirmed" ? "已确认" : item.owner}</small>
+            <div className="issueRow compact issueRowWithAction" key={item.id}>
+              <div className="issueRowMain">
+                <span className={item.status === "confirmed" ? "statusChip confirmed" : "statusChip pending"}>{item.id}</span>
+                <strong>{item.title}</strong>
+                <p className="issueMeta">{stripExpertPrefix(item.source)}</p>
+              </div>
+              <div className="deliverableActions">
+                <button
+                  type="button"
+                  aria-label={`${item.title}预览专家建议`}
+                  onClick={() => onPreviewWorkflow("review", "issues")}
+                >
+                  <Eye size={14} />
+                </button>
+              </div>
             </div>
           ))}
           <div className="auditNote">
@@ -2139,7 +2266,7 @@ function ValidationPreviewModal({
             {isReview ? (
               <>
                 {section === "recognized" ? <ReviewExpertsTable /> : null}
-                {section === "issues" ? <ReviewIssueTable /> : null}
+                {section === "issues" ? <ReviewIssueCards /> : null}
                 {section === "qa" ? <ReviewGateTable /> : null}
                 {section === "context" ? <ReviewEvidenceTable /> : null}
               </>
@@ -2240,6 +2367,41 @@ function ContextTable() {
         ["责任边界", "人类确认", "warning 确认不等于科学结论签字"],
       ]}
     />
+  );
+}
+
+function ReviewIssueCards() {
+  return (
+    <div className="warningEvidenceList">
+      <h3>专家建议列表</h3>
+      {initialReviews.map((item) => {
+        const detail = reviewEvidence(item.id);
+        return (
+          <article className="warningEvidenceCard reviewEvidenceCard" key={item.id}>
+            <header>
+              <span>{item.id}</span>
+              <div>
+                <strong>{item.title}</strong>
+                <small>{item.owner}</small>
+              </div>
+            </header>
+            <div className="warningEvidenceGrid">
+              <section>
+                <span>来源证据</span>
+                {detail.evidence.map((line) => (
+                  <p key={line}>{line}</p>
+                ))}
+                <TraceReference label={detail.trace} />
+              </section>
+              <section>
+                <span>影响范围</span>
+                <p>{detail.impact}</p>
+              </section>
+            </div>
+          </article>
+        );
+      })}
+    </div>
   );
 }
 

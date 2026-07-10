@@ -2263,6 +2263,60 @@ button {
     box-shadow 150ms ease;
 }
 
+.issueRow.compact.issueRowWithAction {
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  min-height: 86px;
+  padding: 13px 14px;
+}
+
+.issueRowWithAction .issueRowMain {
+  display: grid;
+  min-width: 0;
+  gap: 6px;
+}
+
+.issueRowWithAction .issueMeta {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.issueRowWithAction .issueRowMain > span {
+  width: fit-content;
+  border-radius: 10px;
+  background: var(--soft-strong);
+  color: var(--body);
+  padding: 3px 8px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.issueRowWithAction .statusChip.confirmed {
+  border: 1px solid rgba(11, 143, 83, 0.16);
+  background: rgba(11, 143, 83, 0.08);
+  color: #4f7163;
+}
+
+.issueRowWithAction .statusChip.pending {
+  border: 1px solid rgba(139, 111, 56, 0.18);
+  background: rgba(139, 111, 56, 0.09);
+  color: #7a6845;
+}
+
+.issueRowWithAction .deliverableActions {
+  align-self: center;
+  justify-self: end;
+}
+
+.issueRowWithAction .deliverableActions button {
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+}
+
 .issueRow.compact:hover {
   border-color: rgba(41, 0, 255, 0.2);
   background: #fbfbff;
