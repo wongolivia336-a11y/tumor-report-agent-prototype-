@@ -6,6 +6,26 @@ This repository contains a clickable Next.js UX prototype for a tumor experiment
 
 It is prepared for full-stack engineering review, API planning, and future backend integration. It is not production backend code.
 
+## Documentation Sources
+
+- `README.md`
+  Project entry point, preview links, run instructions, and repository map.
+
+- `CHANGELOG.md`
+  Version history and important iteration notes.
+
+- `AGENTS.md`
+  Project-specific instructions for Codex/agent handoff.
+
+- `docs/DESIGN.md`
+  Current design source of truth.
+
+- `docs/API_CONTRACT.md`
+  Draft backend API contract.
+
+- `docs/archive/`
+  Historical worklogs, UX reviews, presentation drafts, and older change notes.
+
 ## Pages / Routes
 
 - `/`
@@ -23,6 +43,9 @@ The App Router entry is intentionally thin:
 
 - `app/globals.css`
   Approved visual system, layout, spacing, cards, hover states, panels, modals, and responsive rules.
+
+- `docs/DESIGN.md`
+  Current design system and interaction rules. Use this before making visual or UX changes.
 
 - `lib/types.ts`
   Core TypeScript business types for users, report runs, uploaded files, warnings, reviews, exports, and API responses.

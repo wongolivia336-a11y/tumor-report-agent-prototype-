@@ -1,55 +1,70 @@
 # Tumor Report Agent Prototype
 
-Clickable Next.js UX prototype for a tumor experiment report agent workspace.
+Clickable Next.js prototype for a tumor experiment report agent workspace.
 
-## Project Location
+This repository is for design review, user-flow validation, and engineering handoff. It is not production backend code.
 
-Local project folder:
-
-```text
-G:\实习\澎立肿瘤报告项目\prototype-agent-workbench
-```
-
-GitHub remote:
-
-```text
-https://github.com/wongolivia336-a11y/tumor-report-agent-prototype-.git
-```
-
-Preview:
+## Preview
 
 - Local dev server: http://localhost:4196
-- Deployed preview: https://tumor-report-agent-prototype.vercel.app/
+- Vercel preview: https://tumor-report-agent-prototype.vercel.app/
+- GitHub remote: https://github.com/wongolivia336-a11y/tumor-report-agent-prototype-.git
 
-This repository is intended for design review, user-flow validation, and engineering discussion with full-stack engineers. It is not production backend code.
+## Quick Start
 
-## Nearby Folders
+```bash
+npm install
+npm run dev -- --port 4196
+```
 
-- `C:\Users\HP\.codex\sessions\2026\07\09`
-  Codex session logs for July 9, 2026. These `rollout-*.jsonl` files are conversation/execution records, not project source code.
+Open:
 
-- `G:\实习\wongolivia336-a11y`
-  A separate GitHub profile README repository for the `wongolivia336-a11y` account. It is not the tumor report prototype project.
+```text
+http://localhost:4196
+```
+
+## Documentation Map
+
+- [CHANGELOG.md](CHANGELOG.md)
+  Version history and important iteration notes.
+
+- [AGENTS.md](AGENTS.md)
+  Project-specific rules for Codex/agent handoff.
+
+- [docs/DESIGN.md](docs/DESIGN.md)
+  Current design system and interaction rules.
+
+- [docs/HANDOFF.md](docs/HANDOFF.md)
+  Engineering handoff notes for future API integration.
+
+- [docs/API_CONTRACT.md](docs/API_CONTRACT.md)
+  Draft backend API contract.
+
+- [docs/SKILLS_INVENTORY.md](docs/SKILLS_INVENTORY.md)
+  Current local skills inventory and cleanup notes.
+
+- [docs/archive/](docs/archive/)
+  Historical worklogs, UX reviews, change notes, and presentation drafts. These are kept for traceability but are not the active source of truth.
 
 ## Repository Map
 
 - `app/`
-  Next.js App Router entry files. `app/page.tsx` renders the prototype screen and `app/globals.css` contains the main visual system.
+  Next.js App Router entry files. `app/page.tsx` renders the prototype screen and `app/globals.css` contains the visual system.
 
 - `components/`
   React UI components. The main workbench prototype currently lives in `components/ReportWorkbench.tsx`.
 
 - `lib/`
-  Mock data, workflow helpers, type definitions, and the draft API contract shape.
+  Mock data, workflow helpers, type definitions, and API contract shape.
 
 - `docs/`
-  Engineering handoff and API contract notes.
+  Active design, handoff, API, skills, and archive documentation.
 
 - `public/`
   Static assets such as the BioAZ logo.
 
 - `output/`
-  Local generated verification artifacts. This is not source code.
+  Local generated verification artifacts. This is not source code and should not be committed.
 
 ## Tech Stack
 
@@ -58,34 +73,6 @@ This repository is intended for design review, user-flow validation, and enginee
 - TypeScript
 - CSS in `app/globals.css`
 - `lucide-react` icons
-
-## Run Locally
-
-```bash
-npm install
-npm run dev
-```
-
-Open:
-
-```text
-http://localhost:3000
-```
-
-Or run on a custom port:
-
-```bash
-npm run dev -- --port 4196
-```
-
-## Page Routes
-
-- `/` - report agent workbench prototype
-
-The route entry is intentionally small:
-
-- `app/page.tsx` renders `components/ReportWorkbench.tsx`
-- `app/layout.tsx` wires metadata and global styles
 
 ## Prototype Scope
 
@@ -109,85 +96,18 @@ Upload DOCX / XLSX files
 -> Delivery package handoff
 ```
 
-## Core Components
+## Key Implementation Notes
 
-- `components/ReportWorkbench.tsx`
-  Main client-side prototype screen and local demo state orchestration.
+- The route entry is intentionally small: `app/page.tsx` renders `components/ReportWorkbench.tsx`.
+- The main prototype state is local and mock-driven.
+- The right-side inspector is a secondary evidence and artifact layer.
+- Warning and expert suggestion previews use the same modal system as artifact previews where possible.
+- Future backend integration should replace mock state after the interaction model is approved.
 
-- `WorkspaceSidebar`
-  Workspace / project / chat navigation model.
+## Validation
 
-- `UploadEmptyState`
-  File upload and required-file readiness experience.
+Run the main check before committing:
 
-- `Conversation`
-  Main task flow, activity chains, agent replies, and artifact cards.
-
-- `Composer`
-  Bottom input area, upload shortcut, warning confirmation, and review confirmation.
-
-- `WarningDecisionPanel`
-  Compressed warning confirmation card with hover/click expansion.
-
-- `ReviewDecisionPanel`
-  Compressed expert suggestion confirmation card with hover/click expansion.
-
-- `HoverInspector`
-  Right-side hover/pin evidence and artifact panel.
-
-- `ArtifactPreviewModal`
-  Preview-only artifact viewer.
-
-## Mock Data Location
-
-- `lib/mock-data.ts`
-  Activity chains, warnings, review modules, export items, trace references, and expert profiles.
-
-- `lib/types.ts`
-  Business types including `User`, `UploadedFile`, `ReportRun`, `ValidationStep`, `WarningItem`, `ReviewModule`, `ExportItem`, and `ApiResponse`.
-
-- `lib/workflow.ts`
-  Workflow status mapping and local prototype helpers.
-
-- `lib/mock-service.ts`
-  Prototype-only mock service shaped like the future backend API contract.
-
-## Workflow State Mapping
-
-| UI Stage | Backend-Oriented Status | Meaning |
-|---|---|---|
-| `empty` | `idle` | No files selected |
-| `uploaded` | `uploaded` | Files are present and may be ready |
-| `validating` | `validating` | Validation activity chain is running |
-| `warning` | `warning_required` | User must accept or reject warning risk |
-| `generating` | `generating` | Report and package generation is running |
-| `review` | `reviewing` | Expert review modules require confirmation |
-| `exported` | `ready_to_export` | Delivery package is ready after review confirmation |
-
-`failed` is defined in `WorkflowStatus` for future backend work, but the approved visual prototype does not currently force a failed state.
-
-## Future API Integration
-
-API contract draft:
-
-- `lib/api-contract.ts`
-- `docs/API_CONTRACT.md`
-
-Planned backend operations:
-
-- Create task
-- Upload file
-- Get task detail
-- Get validation result
-- Confirm warning
-- Get module review status
-- Trigger export
-
-## Notes For Engineers
-
-- The prototype prioritizes UX fidelity over production architecture.
-- The main interface currently lives in `components/ReportWorkbench.tsx`.
-- The visual system and interaction behavior are in `app/globals.css`.
-- Only the delivery package is represented as downloadable; Word and intermediate artifacts are preview-only.
-- Future engineering handoff should replace local mock state with real APIs after the interaction model is approved.
-- See `docs/HANDOFF.md` for detailed engineering guidance.
+```bash
+npm run typecheck
+```
