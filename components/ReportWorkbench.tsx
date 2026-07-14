@@ -418,6 +418,7 @@ export default function ReportWorkbench() {
         onMouseLeave={() => {
           if (!inspectorPinned) setInspectorOpen(false);
         }}
+        onSelectTopic={setInspectorTopic}
         onPin={() => setInspectorPinned((current) => !current)}
         onPreviewArtifact={openArtifactPreview}
         onPreviewWorkflow={openWorkflowPreview}
@@ -1989,6 +1990,7 @@ function HoverInspector({
   reviews,
   onMouseEnter,
   onMouseLeave,
+  onSelectTopic,
   onPin,
   onPreviewArtifact,
   onPreviewWorkflow,
@@ -2003,11 +2005,18 @@ function HoverInspector({
   reviews: ReviewItem[];
   onMouseEnter: () => void;
   onMouseLeave: () => void;
+  onSelectTopic: (topic: InspectorTopic) => void;
   onPin: () => void;
   onPreviewArtifact: (kind: ArtifactPreviewKind) => void;
   onPreviewWorkflow: (kind: PreviewKind, section?: PreviewSection) => void;
 }) {
   const processSteps = topic === "generation" ? generationSteps : validationSteps;
+  const [panelMenuOpen, setPanelMenuOpen] = useState(false);
+  const panelOptions = inspectorPanels(stage);
+  const activeTopic: InspectorTopic = panelOptions.some((panel) => panel.id === topic)
+    ? topic
+    : (panelOptions[0]?.id ?? "process");
+  const activePanel = panelOptions.find((panel) => panel.id === activeTopic) ?? panelOptions[0];
 
   return (
     <aside
@@ -2017,9 +2026,35 @@ function HoverInspector({
       aria-hidden={!open}
     >
       <header>
-        <div>
-          <span>{topicLabel(topic)}</span>
-          <strong>{topicTitle(topic, stage)}</strong>
+        <div className="panelSelector">
+          <button
+            className="panelSelectorTrigger"
+            type="button"
+            onClick={() => setPanelMenuOpen((current) => !current)}
+            aria-expanded={panelMenuOpen}
+          >
+            <FileText size={16} />
+            <span>{activePanel?.label ?? "过程"}</span>
+            <ChevronRight className={panelMenuOpen ? "isOpen" : ""} size={15} />
+          </button>
+          {panelMenuOpen ? (
+            <div className="panelSelectorMenu">
+              {panelOptions.map((panel) => (
+                <button
+                  key={panel.id}
+                  type="button"
+                  onClick={() => {
+                    onSelectTopic(panel.id);
+                    setPanelMenuOpen(false);
+                  }}
+                >
+                  <FileText size={16} />
+                  <span>{panel.label}</span>
+                  {activeTopic === panel.id ? <Check size={17} /> : null}
+                </button>
+              ))}
+            </div>
+          ) : null}
         </div>
         <div className="inspectorControls">
           <button type="button" onClick={onPin} aria-label={pinned ? "取消固定" : "固定"}>
@@ -2028,7 +2063,7 @@ function HoverInspector({
         </div>
       </header>
 
-      {topic === "process" || topic === "generation" ? (
+      {activeTopic === "process" || activeTopic === "generation" ? (
         <div className="inspectorSection">
           {processSteps.map((step) => (
             <div className="inspectorStep" key={step.label}>
@@ -2044,9 +2079,14 @@ function HoverInspector({
         </div>
       ) : null}
 
-      {topic === "warnings" ? (
+      {activeTopic === "warnings" ? (
         <div className="inspectorSection">
-          {warnings.map((item, index) => {
+          <div className="panelIntro">
+            <span>Warning</span>
+            <strong>风险回看</strong>
+            <p>确认后的风险项保留在这里，可在最终放行前回看来源证据和影响范围。</p>
+          </div>
+          {warnings.map((item) => {
             const detail = warningEvidence(item.id);
             return (
               <div className="issueRow compact issueRowWithAction" key={item.id}>
@@ -2073,8 +2113,13 @@ function HoverInspector({
         </div>
       ) : null}
 
-      {topic === "review" ? (
+      {activeTopic === "review" ? (
         <div className="inspectorSection">
+          <div className="panelIntro">
+            <span>Module Review</span>
+            <strong>专家检查与用户确认</strong>
+            <p>展示需要人工确认或补充证据的专家建议，方便在最终放行前逐项回看。</p>
+          </div>
           {reviews.map((item) => {
             const detail = reviewEvidence(item.id);
             return (
@@ -2102,7 +2147,7 @@ function HoverInspector({
         </div>
       ) : null}
 
-      {topic === "artifacts" ? (
+      {activeTopic === "artifacts" ? (
         <div className="inspectorSection">
           <div className="panelIntro">
             <span>Deliverables</span>
@@ -2200,6 +2245,25 @@ function HoverInspector({
       ) : null}
     </aside>
   );
+}
+function inspectorPanels(stage: Stage): Array<{ id: InspectorTopic; label: string }> {
+  if (stage === "review" || stage === "exported") {
+    return [
+      { id: "artifacts", label: "产物" },
+      { id: "warnings", label: "Warning" },
+      { id: "review", label: "审核建议" },
+    ];
+  }
+
+  if (stage === "warning" || stage === "generating") {
+    return [
+      { id: "warnings", label: "Warning" },
+      { id: "artifacts", label: "产物" },
+      { id: "review", label: "审核建议" },
+    ];
+  }
+
+  return [{ id: "process", label: "任务列表" }];
 }
 
 function artifactIcon(kind: string) {
@@ -2684,21 +2748,4 @@ function PreviewTable({ title, rows }: { title: string; rows: string[][] }) {
       </table>
     </div>
   );
-}
-
-function topicLabel(topic: InspectorTopic) {
-  if (topic === "warnings") return "Warning";
-  if (topic === "generation") return "Generation";
-  if (topic === "review") return "Module Review";
-  if (topic === "artifacts") return "Artifacts";
-  return "Process";
-}
-
-function topicTitle(topic: InspectorTopic, stage: Stage) {
-  if (topic === "warnings") return "审核前风险确认";
-  if (topic === "generation") return "生成中间产物";
-  if (topic === "review") return "专家检查与用户确认";
-  if (topic === "artifacts") return "交付产物";
-  if (stage === "validating") return "当前运行步骤";
-  return "Thinking 详情";
 }

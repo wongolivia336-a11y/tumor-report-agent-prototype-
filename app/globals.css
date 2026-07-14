@@ -2161,7 +2161,8 @@ button {
   align-items: center;
   justify-content: space-between;
   border-bottom: 1px solid var(--line);
-  padding: 18px;
+  min-height: 58px;
+  padding: 10px 12px;
 }
 
 .inspector header div:first-child {
@@ -2192,6 +2193,82 @@ button {
   border: 1px solid var(--line);
   border-radius: 11px;
   background: #fff;
+}
+
+.inspector header .panelSelector {
+  position: relative;
+  display: block;
+}
+
+.panelSelectorTrigger {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  border-radius: 7px;
+  background: #f5f5f6;
+  color: var(--ink);
+  padding: 0 12px;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.panelSelectorTrigger svg:last-child {
+  transition: transform 150ms ease;
+}
+
+.panelSelectorTrigger span,
+.panelSelectorMenu span {
+  color: inherit;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.panelSelectorTrigger svg.isOpen {
+  transform: rotate(90deg);
+}
+
+.panelSelectorMenu {
+  position: absolute;
+  z-index: 45;
+  top: calc(100% + 10px);
+  left: 0;
+  display: grid;
+  width: 272px;
+  gap: 2px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.98);
+  padding: 7px;
+  box-shadow: 0 18px 44px rgba(17, 19, 24, 0.13);
+  backdrop-filter: blur(16px);
+}
+
+.panelSelectorMenu button {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) 18px;
+  min-height: 48px;
+  align-items: center;
+  gap: 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--body);
+  padding: 0 12px;
+  text-align: left;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.panelSelectorMenu button:hover {
+  background: #f5f5f6;
+  color: var(--ink);
+}
+
+.panelSelectorMenu button svg:last-child {
+  justify-self: end;
+  color: var(--ink);
 }
 
 .inspectorSection {
