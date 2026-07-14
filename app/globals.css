@@ -2439,12 +2439,6 @@ button {
   padding: 2px 2px 4px;
 }
 
-.panelIntro span {
-  color: var(--brand);
-  font-size: 12px;
-  font-weight: 800;
-}
-
 .panelIntro strong {
   font-size: 15px;
   line-height: 1.35;

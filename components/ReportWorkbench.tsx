@@ -2082,7 +2082,6 @@ function HoverInspector({
       {activeTopic === "warnings" ? (
         <div className="inspectorSection">
           <div className="panelIntro">
-            <span>Warning</span>
             <strong>风险回看</strong>
             <p>确认后的风险项保留在这里，可在最终放行前回看来源证据和影响范围。</p>
           </div>
@@ -2116,8 +2115,7 @@ function HoverInspector({
       {activeTopic === "review" ? (
         <div className="inspectorSection">
           <div className="panelIntro">
-            <span>Module Review</span>
-            <strong>专家检查与用户确认</strong>
+            <strong>审核建议确认</strong>
             <p>展示需要人工确认或补充证据的专家建议，方便在最终放行前逐项回看。</p>
           </div>
           {reviews.map((item) => {
@@ -2150,8 +2148,7 @@ function HoverInspector({
       {activeTopic === "artifacts" ? (
         <div className="inspectorSection">
           <div className="panelIntro">
-            <span>Deliverables</span>
-            <strong>最终产物与可追溯材料</strong>
+            <strong>交付产物</strong>
             <p>核心交付在主对话中展示，其余过程产物和证据在这里预览或打开。</p>
           </div>
           {generationGroups.map((group) => (
@@ -2189,7 +2186,6 @@ function HoverInspector({
           ))}
           <div className="panelDivider" />
           <div className="panelIntro compact">
-            <span>Warning</span>
             <strong>风险回看</strong>
             <p>确认后的风险项保留在这里，可在最终放行前回看来源证据和影响范围。</p>
           </div>
@@ -2216,7 +2212,6 @@ function HoverInspector({
           })}
           <div className="panelDivider" />
           <div className="panelIntro compact">
-            <span>Review</span>
             <strong>专家建议摘要</strong>
           </div>
           {reviews.slice(0, 3).map((item) => (
@@ -2250,14 +2245,14 @@ function inspectorPanels(stage: Stage): Array<{ id: InspectorTopic; label: strin
   if (stage === "review" || stage === "exported") {
     return [
       { id: "artifacts", label: "产物" },
-      { id: "warnings", label: "Warning" },
+      { id: "warnings", label: "风险回看" },
       { id: "review", label: "审核建议" },
     ];
   }
 
   if (stage === "warning" || stage === "generating") {
     return [
-      { id: "warnings", label: "Warning" },
+      { id: "warnings", label: "风险回看" },
       { id: "artifacts", label: "产物" },
       { id: "review", label: "审核建议" },
     ];
