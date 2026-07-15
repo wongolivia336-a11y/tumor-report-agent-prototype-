@@ -6,6 +6,7 @@ export const WORKFLOW_STATUS_LABEL: Record<WorkflowStatus, string> = {
   validating: "校验中",
   warning_required: "需要确认 warning",
   generating: "生成中",
+  generated: "报告已生成",
   reviewing: "审核中",
   ready_to_export: "可导出",
   failed: "失败",
@@ -17,6 +18,8 @@ export const STAGE_TO_WORKFLOW_STATUS: Record<Stage, WorkflowStatus> = {
   validating: "validating",
   warning: "warning_required",
   generating: "generating",
+  generated: "generated",
+  reviewing: "reviewing",
   review: "reviewing",
   exported: "ready_to_export",
 };

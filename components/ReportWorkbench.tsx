@@ -57,6 +57,7 @@ export default function ReportWorkbench() {
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [validationProgress, setValidationProgress] = useState(0);
   const [generationProgress, setGenerationProgress] = useState(0);
+  const [reviewProgress, setReviewProgress] = useState(0);
   const [expandedTech, setExpandedTech] = useState<string | null>(null);
   const [expandedThinking, setExpandedThinking] = useState({
     validation: true,
@@ -95,10 +96,12 @@ export default function ReportWorkbench() {
     () => makeSteps(generationActionsBase, generationProgress, stage === "generating"),
     [stage, generationProgress],
   );
-  const reviewSteps = useMemo(
-    () => reviewActionsBase.map((step) => ({ ...step, status: "done" as const })),
-    [],
-  );
+  const reviewSteps = useMemo(() => {
+    if (stage === "review" || stage === "exported") {
+      return reviewActionsBase.map((step) => ({ ...step, status: "done" as const }));
+    }
+    return makeSteps(reviewActionsBase, reviewProgress, stage === "reviewing");
+  }, [reviewProgress, stage]);
   const openWorkflowPreview = (kind: PreviewKind, section: PreviewSection = "issues") => {
     setPreviewKind(kind);
     setPreviewSection(section);
@@ -145,7 +148,7 @@ export default function ReportWorkbench() {
         if (next >= generationActionsBase.length) {
           window.clearInterval(timer);
           window.setTimeout(() => {
-            setStage("review");
+            setStage("generated");
             setExpandedThinking((value) => ({ ...value, generation: false }));
             setInspectorTopic("artifacts");
             setInspectorOpen(true);
@@ -154,6 +157,31 @@ export default function ReportWorkbench() {
         return Math.min(next, generationActionsBase.length);
       });
     }, 950);
+
+    return () => window.clearInterval(timer);
+  }, [stage]);
+
+  useEffect(() => {
+    if (stage !== "reviewing") return;
+
+    setReviewProgress(0);
+    setExpandedThinking((current) => ({ ...current, review: true }));
+
+    const timer = window.setInterval(() => {
+      setReviewProgress((current) => {
+        const next = current + 1;
+        if (next >= reviewActionsBase.length) {
+          window.clearInterval(timer);
+          window.setTimeout(() => {
+            setStage("review");
+            setExpandedThinking((value) => ({ ...value, review: false }));
+            setInspectorTopic("review");
+            setInspectorOpen(true);
+          }, 450);
+        }
+        return Math.min(next, reviewActionsBase.length);
+      });
+    }, 1200);
 
     return () => window.clearInterval(timer);
   }, [stage]);
@@ -206,6 +234,7 @@ export default function ReportWorkbench() {
     setFollowupState("idle");
     setValidationProgress(0);
     setGenerationProgress(0);
+    setReviewProgress(0);
     setInspectorTopic("process");
   };
 
@@ -263,6 +292,14 @@ export default function ReportWorkbench() {
     setWarnings(initialWarnings);
     setValidationProgress(0);
     setGenerationProgress(0);
+    setReviewProgress(0);
+  };
+
+  const startReview = () => {
+    addUserEvent("review", "发起专家小队审核");
+    setStage("reviewing");
+    setInspectorTopic("review");
+    setInspectorOpen(true);
   };
 
   const confirmReview = (id: string) => {
@@ -293,7 +330,10 @@ export default function ReportWorkbench() {
   const sendComposerMessage = (text: string) => {
     const trimmed = text.trim();
     if (!trimmed) return;
-    addUserEvent(stage === "review" || stage === "exported" ? "review" : "warning", trimmed);
+    addUserEvent(
+      ["generated", "reviewing", "review", "exported"].includes(stage) ? "review" : "warning",
+      trimmed,
+    );
     setComposerText("");
 
     if (stage === "review" || stage === "exported") {
@@ -375,6 +415,7 @@ export default function ReportWorkbench() {
           onAcceptWarning={acceptWarning}
           onRejectWarnings={rejectWarnings}
           onPreview={() => openWorkflowPreview("validation", "issues")}
+          onStartReview={startReview}
           onConfirmReview={confirmReview}
           onConfirmAllReviews={confirmAllReviews}
           onAskFollowup={askFollowup}
@@ -1020,13 +1061,21 @@ function Conversation({
   onPreviewArtifact: (kind: ArtifactPreviewKind) => void;
   onInspector: (topic: InspectorTopic) => void;
 }) {
-  const validationVisible = ["validating", "warning", "generating", "review", "exported"].includes(stage);
-  const generationVisible = ["generating", "review", "exported"].includes(stage);
-  const artifactsVisible = ["review", "exported"].includes(stage);
-  const reviewVisible = ["review", "exported"].includes(stage);
+  const validationVisible = [
+    "validating",
+    "warning",
+    "generating",
+    "generated",
+    "reviewing",
+    "review",
+    "exported",
+  ].includes(stage);
+  const generationVisible = ["generating", "generated", "reviewing", "review", "exported"].includes(stage);
+  const artifactsVisible = ["generated", "reviewing", "review", "exported"].includes(stage);
+  const reviewVisible = ["reviewing", "review", "exported"].includes(stage);
   const validationElapsed = useStageTimer(stage === "validating", stage === "empty" || stage === "uploaded");
   const generationElapsed = useStageTimer(stage === "generating", stage === "warning");
-  const reviewElapsed = useStageTimer(stage === "review", stage === "generating");
+  const reviewElapsed = useStageTimer(stage === "reviewing", stage === "generated");
 
   return (
     <section className="conversation">
@@ -1063,7 +1112,7 @@ function Conversation({
             }
             onInspector={() => onInspector("process")}
           />
-          {["warning", "generating", "review", "exported"].includes(stage) ? (
+          {["warning", "generating", "generated", "reviewing", "review", "exported"].includes(stage) ? (
             <AgentReply
               title="校验完成。"
               tone="warning"
@@ -1133,14 +1182,16 @@ function Conversation({
 
       {reviewVisible ? (
         <section className="phaseBlock">
-          <AgentReply title="已自动进入专家检查流程" tone="neutral">
-            审核小队会从数据溯源、统计口径、安全性和图表版式几个方向检查报告，并把需要用户确认或补充证据的建议汇总出来。
-          </AgentReply>
+          {stage === "reviewing" ? (
+            <AgentReply title="专家小队审核已发起。" tone="neutral">
+              审核小队正在从数据溯源、统计口径、安全性和图表版式几个方向检查报告。审核建议生成前，产物保持可预览状态。
+            </AgentReply>
+          ) : null}
           <ThinkingCard
-            running={stage === "review"}
+            running={stage === "reviewing"}
             elapsed={reviewElapsed}
             steps={reviewSteps}
-            expanded={expandedThinking.review}
+            expanded={stage === "reviewing" || expandedThinking.review}
             title="专家检查过程"
             collapsedLabel="已完成专家检查过程 · 查看过程"
             expandedTech={expandedTech}
@@ -1156,7 +1207,7 @@ function Conversation({
           />
           <UserEventBubbles events={userEvents} after="review" />
           {followupState !== "idle" ? <FollowupAnswer state={followupState} /> : null}
-          {reviews.every((item) => item.status === "confirmed") ? (
+          {stage !== "reviewing" && reviews.every((item) => item.status === "confirmed") ? (
             <section className="artifactStack">
               <ArtifactCard
                 icon={<FileCheck size={26} />}
@@ -1167,20 +1218,22 @@ function Conversation({
               />
             </section>
           ) : null}
-          <AgentReply
-            title={
-              reviews.every((item) => item.status === "confirmed")
-                ? "专家建议已确认完成。"
-                : "专家检查完成。"
-            }
-            tone={reviews.every((item) => item.status === "confirmed") ? "success" : "neutral"}
-            actionLabel="查看审核问题列表"
-            onAction={() => onInspector("review")}
-          >
-            {reviews.every((item) => item.status === "confirmed")
-              ? "专家建议已形成文档，可作为最终放行前的审核材料。当前报告已满足进入最终放行的前置条件，最终是否通过仍由 SD / QA / 统计角色签核决定。"
-              : `当前还有 ${reviews.filter((item) => item.status === "pending").length} 条建议需要人工确认或补充证据。最终是否通过由 SD / QA / 统计角色签核决定，处理完下方确认列表后才能进入最终放行。`}
-          </AgentReply>
+          {stage !== "reviewing" ? (
+            <AgentReply
+              title={
+                reviews.every((item) => item.status === "confirmed")
+                  ? "专家建议已确认完成。"
+                  : "专家检查完成。"
+              }
+              tone={reviews.every((item) => item.status === "confirmed") ? "success" : "neutral"}
+              actionLabel="查看审核问题列表"
+              onAction={() => onInspector("review")}
+            >
+              {reviews.every((item) => item.status === "confirmed")
+                ? "专家建议已形成文档，可作为最终放行前的审核材料。当前报告已满足进入最终放行的前置条件，最终是否通过仍由 SD / QA / 统计角色签核决定。"
+                : `当前还有 ${reviews.filter((item) => item.status === "pending").length} 条建议需要人工确认或补充证据。最终是否通过由 SD / QA / 统计角色签核决定，处理完下方确认列表后才能进入最终放行。`}
+            </AgentReply>
+          ) : null}
         </section>
       ) : null}
     </section>
@@ -1383,6 +1436,7 @@ function Composer({
   onAcceptWarning,
   onRejectWarnings,
   onPreview,
+  onStartReview,
   onConfirmReview,
   onConfirmAllReviews,
   onAskFollowup,
@@ -1407,6 +1461,7 @@ function Composer({
   onAcceptWarning: (id: string) => void;
   onRejectWarnings: () => void;
   onPreview: () => void;
+  onStartReview: () => void;
   onConfirmReview: (id: string) => void;
   onConfirmAllReviews: () => void;
   onAskFollowup: () => void;
@@ -1434,6 +1489,13 @@ function Composer({
           onToggleExpanded={() =>
             setExpandedDecision((current) => (current === "warning" ? null : "warning"))
           }
+        />
+      ) : null}
+
+      {stage === "generated" ? (
+        <ReviewLaunchPanel
+          onStartReview={onStartReview}
+          onOpenArtifacts={() => onOpenInspector("artifacts")}
         />
       ) : null}
 
@@ -1510,7 +1572,15 @@ function Composer({
               onStartValidation();
               return;
             }
-            onOpenInspector(stage === "review" || stage === "exported" ? "artifacts" : "process");
+            if (stage === "generated") {
+              onOpenInspector("artifacts");
+              return;
+            }
+            if (stage === "reviewing" || stage === "review" || stage === "exported") {
+              onOpenInspector("review");
+              return;
+            }
+            onOpenInspector("process");
           }}
           aria-label={stage === "empty" || stage === "uploaded" ? "开始校验" : "发送"}
         >
@@ -1624,6 +1694,37 @@ function reviewEvidence(id: string) {
   };
 
   return details[id] ?? details["R-01"];
+}
+
+function ReviewLaunchPanel({
+  onStartReview,
+  onOpenArtifacts,
+}: {
+  onStartReview: () => void;
+  onOpenArtifacts: () => void;
+}) {
+  return (
+    <article className="warningDecision reviewDecision stackDecision">
+      <div className="warningDecisionHeader">
+        <div>
+          <span>专家小队审核</span>
+          <strong>报告产物已生成，可以发起专家小队审核</strong>
+        </div>
+        <small>待发起</small>
+      </div>
+      <p className="responsibilityNote">
+        专家小队会检查数据溯源、统计口径、安全性和图表版式；审核完成后，再汇总需要人工确认或补充证据的建议。
+      </p>
+      <div className="warningActions">
+        <button className="decisionIcon" type="button" onClick={onOpenArtifacts} aria-label="查看产物">
+          <Eye size={16} />
+        </button>
+        <button className="primaryButton compact" type="button" onClick={onStartReview}>
+          发起专家小队审核
+        </button>
+      </div>
+    </article>
+  );
 }
 
 function WarningDecisionPanel({
@@ -2115,10 +2216,16 @@ function HoverInspector({
       {activeTopic === "review" ? (
         <div className="inspectorSection">
           <div className="panelIntro">
-            <strong>审核建议确认</strong>
-            <p>展示需要人工确认或补充证据的专家建议，方便在最终放行前逐项回看。</p>
+            <strong>{stage === "generated" ? "等待发起审核" : stage === "reviewing" ? "专家小队审核中" : "审核建议确认"}</strong>
+            <p>
+              {stage === "generated"
+                ? "报告产物已生成，发起专家小队审核后才会生成审核建议。"
+                : stage === "reviewing"
+                  ? "专家小队正在检查报告产物，审核完成后会在这里展示需要确认的建议。"
+                  : "展示需要人工确认或补充证据的专家建议，方便在最终放行前逐项回看。"}
+            </p>
           </div>
-          {reviews.map((item) => {
+          {stage === "generated" || stage === "reviewing" ? null : reviews.map((item) => {
             const detail = reviewEvidence(item.id);
             return (
             <div className="issueRow compact issueRowWithAction" key={item.id}>
@@ -2242,7 +2349,7 @@ function HoverInspector({
   );
 }
 function inspectorPanels(stage: Stage): Array<{ id: InspectorTopic; label: string }> {
-  if (stage === "review" || stage === "exported") {
+  if (stage === "generated" || stage === "reviewing" || stage === "review" || stage === "exported") {
     return [
       { id: "artifacts", label: "产物" },
       { id: "warnings", label: "风险回看" },
@@ -2254,7 +2361,6 @@ function inspectorPanels(stage: Stage): Array<{ id: InspectorTopic; label: strin
     return [
       { id: "warnings", label: "风险回看" },
       { id: "artifacts", label: "产物" },
-      { id: "review", label: "审核建议" },
     ];
   }
 

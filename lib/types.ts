@@ -4,11 +4,21 @@ export type WorkflowStatus =
   | "validating"
   | "warning_required"
   | "generating"
+  | "generated"
   | "reviewing"
   | "ready_to_export"
   | "failed";
 
-export type Stage = "empty" | "uploaded" | "validating" | "warning" | "generating" | "review" | "exported";
+export type Stage =
+  | "empty"
+  | "uploaded"
+  | "validating"
+  | "warning"
+  | "generating"
+  | "generated"
+  | "reviewing"
+  | "review"
+  | "exported";
 
 export type User = {
   id: string;
